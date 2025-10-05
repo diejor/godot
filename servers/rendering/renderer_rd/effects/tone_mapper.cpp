@@ -138,15 +138,15 @@ void ToneMapper::tonemapper(RID p_source_color, RID p_dst_framebuffer, const Ton
 		mode += 6;
 	}
 
-	RID default_sampler = material_storage->sampler_rd_get_default(RS::CANVAS_ITEM_TEXTURE_FILTER_LINEAR, RS::CANVAS_ITEM_TEXTURE_REPEAT_DISABLED);
-	RID default_mipmap_sampler = material_storage->sampler_rd_get_default(RS::CANVAS_ITEM_TEXTURE_FILTER_LINEAR_WITH_MIPMAPS, RS::CANVAS_ITEM_TEXTURE_REPEAT_DISABLED);
+RID default_sampler = material_storage->sampler_rd_get_default(p_settings.color_texture_filter, RS::CANVAS_ITEM_TEXTURE_REPEAT_DISABLED);
+RID default_mipmap_sampler = material_storage->sampler_rd_get_default(RS::CANVAS_ITEM_TEXTURE_FILTER_LINEAR_WITH_MIPMAPS, RS::CANVAS_ITEM_TEXTURE_REPEAT_DISABLED);
 
-	RD::Uniform u_source_color(RD::UNIFORM_TYPE_SAMPLER_WITH_TEXTURE, 0, Vector<RID>({ default_sampler, p_source_color }));
+RD::Uniform u_source_color(RD::UNIFORM_TYPE_SAMPLER_WITH_TEXTURE, 0, Vector<RID>({ default_sampler, p_source_color }));
 
 	RD::Uniform u_exposure_texture;
 	u_exposure_texture.uniform_type = RD::UNIFORM_TYPE_SAMPLER_WITH_TEXTURE;
 	u_exposure_texture.binding = 0;
-	u_exposure_texture.append_id(default_sampler);
+u_exposure_texture.append_id(default_sampler);
 	u_exposure_texture.append_id(p_settings.exposure_texture);
 
 	RD::Uniform u_glow_texture;
@@ -164,7 +164,7 @@ void ToneMapper::tonemapper(RID p_source_color, RID p_dst_framebuffer, const Ton
 	RD::Uniform u_color_correction_texture;
 	u_color_correction_texture.uniform_type = RD::UNIFORM_TYPE_SAMPLER_WITH_TEXTURE;
 	u_color_correction_texture.binding = 0;
-	u_color_correction_texture.append_id(default_sampler);
+u_color_correction_texture.append_id(default_sampler);
 	u_color_correction_texture.append_id(p_settings.color_correction_texture);
 
 	RID shader = tonemap.shader.version_get_shader(tonemap.shader_version, mode);
@@ -220,7 +220,7 @@ void ToneMapper::tonemapper(RD::DrawListID p_subpass_draw_list, RID p_source_col
 
 	tonemap.push_constant.flags |= p_settings.convert_to_srgb ? TONEMAP_FLAG_CONVERT_TO_SRGB : 0;
 
-	RID default_sampler = material_storage->sampler_rd_get_default(RS::CANVAS_ITEM_TEXTURE_FILTER_LINEAR, RS::CANVAS_ITEM_TEXTURE_REPEAT_DISABLED);
+RID default_sampler = material_storage->sampler_rd_get_default(p_settings.color_texture_filter, RS::CANVAS_ITEM_TEXTURE_REPEAT_DISABLED);
 	RID default_mipmap_sampler = material_storage->sampler_rd_get_default(RS::CANVAS_ITEM_TEXTURE_FILTER_LINEAR_WITH_MIPMAPS, RS::CANVAS_ITEM_TEXTURE_REPEAT_DISABLED);
 
 	RD::Uniform u_source_color;

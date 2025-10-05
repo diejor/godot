@@ -147,7 +147,7 @@ scaling_3d_scale = Vector2(1.0, 1.0);
 scaling_3d_mode = RS::VIEWPORT_SCALING_3D_MODE_OFF;
 }
 
-			if (scaling_3d_mode != RS::VIEWPORT_SCALING_3D_MODE_OFF && scaling_3d_mode != RS::VIEWPORT_SCALING_3D_MODE_BILINEAR && OS::get_singleton()->get_current_rendering_method() == "gl_compatibility") {
+if (scaling_3d_mode != RS::VIEWPORT_SCALING_3D_MODE_OFF && scaling_3d_mode != RS::VIEWPORT_SCALING_3D_MODE_BILINEAR && scaling_3d_mode != RS::VIEWPORT_SCALING_3D_MODE_NEAREST && OS::get_singleton()->get_current_rendering_method() == "gl_compatibility") {
 				scaling_3d_mode = RS::VIEWPORT_SCALING_3D_MODE_BILINEAR;
 				scaling_type = RS::scaling_3d_mode_type(scaling_3d_mode);
 				WARN_PRINT_ONCE("MetalFX and FSR upscaling are not supported in the Compatibility renderer. Falling back to bilinear scaling.");
@@ -186,32 +186,32 @@ msaa_3d = RS::VIEWPORT_MSAA_DISABLED;
 }
 }
 
-bool scaling_3d_is_not_bilinear = scaling_3d_mode != RS::VIEWPORT_SCALING_3D_MODE_OFF && scaling_3d_mode != RS::VIEWPORT_SCALING_3D_MODE_BILINEAR;
+bool scaling_3d_uses_advanced_upscaler = scaling_3d_mode != RS::VIEWPORT_SCALING_3D_MODE_OFF && scaling_3d_mode != RS::VIEWPORT_SCALING_3D_MODE_BILINEAR && scaling_3d_mode != RS::VIEWPORT_SCALING_3D_MODE_NEAREST;
 bool use_taa = p_viewport->use_taa;
 bool uniform_scale = Math::is_equal_approx(scaling_3d_scale.x, scaling_3d_scale.y, EPSILON);
 
-if (scaling_3d_is_not_bilinear && !uniform_scale) {
+if (scaling_3d_uses_advanced_upscaler && !uniform_scale) {
 WARN_PRINT_ONCE("Non-uniform 3D scaling is only supported when using bilinear scaling. Falling back to bilinear 3D resolution scaling.");
 scaling_3d_mode = RS::VIEWPORT_SCALING_3D_MODE_BILINEAR;
-scaling_3d_is_not_bilinear = false;
+scaling_3d_uses_advanced_upscaler = false;
 scaling_type = RS::scaling_3d_mode_type(scaling_3d_mode);
 }
 
-if (scaling_3d_is_not_bilinear && (scaling_3d_scale.x >= (1.0 + EPSILON) || scaling_3d_scale.y >= (1.0 + EPSILON))) {
+if (scaling_3d_uses_advanced_upscaler && (scaling_3d_scale.x >= (1.0 + EPSILON) || scaling_3d_scale.y >= (1.0 + EPSILON))) {
 // FSR and MetalFX is not designed for downsampling.
 // Fall back to bilinear scaling.
 WARN_PRINT_ONCE("FSR 3D resolution scaling is not designed for downsampling. Falling back to bilinear 3D resolution scaling.");
 scaling_3d_mode = RS::VIEWPORT_SCALING_3D_MODE_BILINEAR;
-scaling_3d_is_not_bilinear = false;
+scaling_3d_uses_advanced_upscaler = false;
 scaling_type = RS::scaling_3d_mode_type(scaling_3d_mode);
 }
 
-if (scaling_3d_is_not_bilinear && !upscaler_available) {
+if (scaling_3d_uses_advanced_upscaler && !upscaler_available) {
 // FSR is not actually available.
 // Fall back to bilinear scaling.
 WARN_PRINT_ONCE("FSR 3D resolution scaling is not available. Falling back to bilinear 3D resolution scaling.");
 scaling_3d_mode = RS::VIEWPORT_SCALING_3D_MODE_BILINEAR;
-scaling_3d_is_not_bilinear = false;
+scaling_3d_uses_advanced_upscaler = false;
 scaling_type = RS::scaling_3d_mode_type(scaling_3d_mode);
 }
 
@@ -229,6 +229,7 @@ scaling_type = RS::scaling_3d_mode_type(scaling_3d_mode);
 
 switch (scaling_3d_mode) {
 case RS::VIEWPORT_SCALING_3D_MODE_BILINEAR:
+case RS::VIEWPORT_SCALING_3D_MODE_NEAREST:
 // Clamp 3D rendering resolution to reasonable values supported on most hardware.
 // This prevents freezing the engine or outright crashing on lower-end GPUs.
 target_width = p_viewport->size.width;

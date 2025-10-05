@@ -668,7 +668,8 @@ void RendererSceneRenderRD::_render_buffers_post_process_and_tonemap(const Rende
 			tonemap.use_fxaa = true;
 		}
 
-		tonemap.texture_size = Vector2i(color_size.x, color_size.y);
+tonemap.texture_size = Vector2i(color_size.x, color_size.y);
+tonemap.color_texture_filter = (rb->get_scaling_3d_mode() == RS::VIEWPORT_SCALING_3D_MODE_NEAREST) ? RS::CANVAS_ITEM_TEXTURE_FILTER_NEAREST : RS::CANVAS_ITEM_TEXTURE_FILTER_LINEAR;
 
 		if (p_render_data->environment.is_valid()) {
 			tonemap.tonemap_mode = environment_get_tone_mapper(p_render_data->environment);
@@ -933,7 +934,8 @@ void RendererSceneRenderRD::_post_process_subpass(RID p_source_texture, RID p_fr
 		}
 	}
 
-	tonemap.texture_size = Vector2i(target_size.x, target_size.y);
+tonemap.texture_size = Vector2i(target_size.x, target_size.y);
+tonemap.color_texture_filter = (rb->get_scaling_3d_mode() == RS::VIEWPORT_SCALING_3D_MODE_NEAREST) ? RS::CANVAS_ITEM_TEXTURE_FILTER_NEAREST : RS::CANVAS_ITEM_TEXTURE_FILTER_LINEAR;
 
 	tonemap.luminance_multiplier = _render_buffers_get_luminance_multiplier();
 	tonemap.view_count = rb->get_view_count();
