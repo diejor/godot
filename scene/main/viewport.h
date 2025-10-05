@@ -314,7 +314,7 @@ private:
 	bool use_taa = false;
 
 	Scaling3DMode scaling_3d_mode = SCALING_3D_MODE_BILINEAR;
-	float scaling_3d_scale = 1.0;
+Vector2 scaling_3d_scale = Vector2(1.0, 1.0);
 	float fsr_sharpness = 0.2f;
 	float texture_mipmap_bias = 0.0f;
 	AnisotropicFiltering anisotropic_filtering_level = ANISOTROPY_4X;
@@ -585,8 +585,8 @@ public:
 	void set_scaling_3d_mode(Scaling3DMode p_scaling_3d_mode);
 	Scaling3DMode get_scaling_3d_mode() const;
 
-	void set_scaling_3d_scale(float p_scaling_3d_scale);
-	float get_scaling_3d_scale() const;
+void set_scaling_3d_scale(const Vector2 &p_scaling_3d_scale);
+Vector2 get_scaling_3d_scale() const;
 
 	void set_fsr_sharpness(float p_fsr_sharpness);
 	float get_fsr_sharpness() const;
