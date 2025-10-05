@@ -668,7 +668,8 @@ void RendererSceneRenderRD::_render_buffers_post_process_and_tonemap(const Rende
 			tonemap.use_fxaa = true;
 		}
 
-		tonemap.texture_size = Vector2i(color_size.x, color_size.y);
+tonemap.texture_size = Vector2i(color_size.x, color_size.y);
+tonemap.color_texture_filter = (rb->get_scaling_3d_mode() == RS::VIEWPORT_SCALING_3D_MODE_NEAREST) ? RS::CANVAS_ITEM_TEXTURE_FILTER_NEAREST : RS::CANVAS_ITEM_TEXTURE_FILTER_LINEAR;
 
 		if (p_render_data->environment.is_valid()) {
 			tonemap.tonemap_mode = environment_get_tone_mapper(p_render_data->environment);
@@ -933,7 +934,8 @@ void RendererSceneRenderRD::_post_process_subpass(RID p_source_texture, RID p_fr
 		}
 	}
 
-	tonemap.texture_size = Vector2i(target_size.x, target_size.y);
+tonemap.texture_size = Vector2i(target_size.x, target_size.y);
+tonemap.color_texture_filter = (rb->get_scaling_3d_mode() == RS::VIEWPORT_SCALING_3D_MODE_NEAREST) ? RS::CANVAS_ITEM_TEXTURE_FILTER_NEAREST : RS::CANVAS_ITEM_TEXTURE_FILTER_LINEAR;
 
 	tonemap.luminance_multiplier = _render_buffers_get_luminance_multiplier();
 	tonemap.view_count = rb->get_view_count();
@@ -1358,8 +1360,10 @@ void RendererSceneRenderRD::render_scene(const Ref<RenderSceneBuffers> &p_render
 
 		// Also, take into account resolution scaling for the multiplier, since we have more leeway with quality
 		// degradation visibility. Conversely, allow upwards scaling, too, for increased mesh detail at high res.
-		const float scaling_3d_scale = GLOBAL_GET_CACHED(float, "rendering/scaling_3d/scale");
-		scene_data.lod_distance_multiplier = lod_distance_multiplier * (1.0 / scaling_3d_scale);
+const Vector2 scaling_3d_scale = GLOBAL_GET_CACHED(Vector2, "rendering/scaling_3d/scale");
+float lod_scale = MIN(scaling_3d_scale.x, scaling_3d_scale.y);
+lod_scale = MAX(lod_scale, 0.0001f);
+scene_data.lod_distance_multiplier = lod_distance_multiplier * (1.0 / lod_scale);
 
 		if (get_debug_draw_mode() == RS::VIEWPORT_DEBUG_DRAW_DISABLE_LOD) {
 			scene_data.screen_mesh_lod_threshold = 0.0;
