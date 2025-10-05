@@ -4810,19 +4810,27 @@ Viewport::Scaling3DMode Viewport::get_scaling_3d_mode() const {
 	return scaling_3d_mode;
 }
 
-void Viewport::set_scaling_3d_scale(float p_scaling_3d_scale) {
-	ERR_MAIN_THREAD_GUARD;
-	// Clamp to reasonable values that are actually useful.
-	// Values above 2.0 don't serve a practical purpose since the viewport
-	// isn't displayed with mipmaps.
-	scaling_3d_scale = CLAMP(p_scaling_3d_scale, 0.1, 2.0);
+void Viewport::set_scaling_3d_scale(const Vector2 &p_scaling_3d_scale) {
+ERR_MAIN_THREAD_GUARD;
+// Clamp to reasonable values that are actually useful.
+// Values above 2.0 don't serve a practical purpose since the viewport
+// isn't displayed with mipmaps.
+Vector2 clamped = p_scaling_3d_scale;
+clamped.x = CLAMP(clamped.x, 0.1, 2.0);
+clamped.y = CLAMP(clamped.y, 0.1, 2.0);
 
-	RS::get_singleton()->viewport_set_scaling_3d_scale(viewport, scaling_3d_scale);
+if (scaling_3d_scale == clamped) {
+return;
 }
 
-float Viewport::get_scaling_3d_scale() const {
-	ERR_READ_THREAD_GUARD_V(0);
-	return scaling_3d_scale;
+scaling_3d_scale = clamped;
+
+RS::get_singleton()->viewport_set_scaling_3d_scale(viewport, scaling_3d_scale);
+}
+
+Vector2 Viewport::get_scaling_3d_scale() const {
+ERR_READ_THREAD_GUARD_V(Vector2());
+return scaling_3d_scale;
 }
 
 void Viewport::set_fsr_sharpness(float p_fsr_sharpness) {
@@ -5066,8 +5074,8 @@ void Viewport::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_scaling_3d_mode", "scaling_3d_mode"), &Viewport::set_scaling_3d_mode);
 	ClassDB::bind_method(D_METHOD("get_scaling_3d_mode"), &Viewport::get_scaling_3d_mode);
 
-	ClassDB::bind_method(D_METHOD("set_scaling_3d_scale", "scale"), &Viewport::set_scaling_3d_scale);
-	ClassDB::bind_method(D_METHOD("get_scaling_3d_scale"), &Viewport::get_scaling_3d_scale);
+ClassDB::bind_method(D_METHOD("set_scaling_3d_scale", "scale"), &Viewport::set_scaling_3d_scale);
+ClassDB::bind_method(D_METHOD("get_scaling_3d_scale"), &Viewport::get_scaling_3d_scale);
 
 	ClassDB::bind_method(D_METHOD("set_fsr_sharpness", "fsr_sharpness"), &Viewport::set_fsr_sharpness);
 	ClassDB::bind_method(D_METHOD("get_fsr_sharpness"), &Viewport::get_fsr_sharpness);
@@ -5110,8 +5118,8 @@ void Viewport::_bind_methods() {
 
 #ifndef _3D_DISABLED
 	ADD_GROUP("Scaling 3D", "");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "scaling_3d_mode", PROPERTY_HINT_ENUM, "Bilinear (Fastest),FSR 1.0 (Fast),FSR 2.2 (Slow),MetalFX (Spatial),MetalFX (Temporal)"), "set_scaling_3d_mode", "get_scaling_3d_mode");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scaling_3d_scale", PROPERTY_HINT_RANGE, "0.25,2.0,0.01"), "set_scaling_3d_scale", "get_scaling_3d_scale");
+ADD_PROPERTY(PropertyInfo(Variant::INT, "scaling_3d_mode", PROPERTY_HINT_ENUM, "Bilinear (Fastest),FSR 1.0 (Fast),FSR 2.2 (Slow),MetalFX (Spatial),MetalFX (Temporal),Nearest (Pixel Perfect)"), "set_scaling_3d_mode", "get_scaling_3d_mode");
+ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "scaling_3d_scale", PROPERTY_HINT_RANGE, "0.1,2.0,0.01"), "set_scaling_3d_scale", "get_scaling_3d_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "texture_mipmap_bias", PROPERTY_HINT_RANGE, "-2,2,0.001"), "set_texture_mipmap_bias", "get_texture_mipmap_bias");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "anisotropic_filtering_level", PROPERTY_HINT_ENUM, String::utf8("Disabled (Fastest),2× (Faster),4× (Fast),8× (Average),16x (Slow)")), "set_anisotropic_filtering_level", "get_anisotropic_filtering_level");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "fsr_sharpness", PROPERTY_HINT_RANGE, "0,2,0.1"), "set_fsr_sharpness", "get_fsr_sharpness");
@@ -5168,11 +5176,12 @@ void Viewport::_bind_methods() {
 	BIND_ENUM_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_MAX);
 
 	BIND_ENUM_CONSTANT(SCALING_3D_MODE_BILINEAR);
-	BIND_ENUM_CONSTANT(SCALING_3D_MODE_FSR);
-	BIND_ENUM_CONSTANT(SCALING_3D_MODE_FSR2);
-	BIND_ENUM_CONSTANT(SCALING_3D_MODE_METALFX_SPATIAL);
-	BIND_ENUM_CONSTANT(SCALING_3D_MODE_METALFX_TEMPORAL);
-	BIND_ENUM_CONSTANT(SCALING_3D_MODE_MAX);
+BIND_ENUM_CONSTANT(SCALING_3D_MODE_FSR);
+BIND_ENUM_CONSTANT(SCALING_3D_MODE_FSR2);
+BIND_ENUM_CONSTANT(SCALING_3D_MODE_METALFX_SPATIAL);
+BIND_ENUM_CONSTANT(SCALING_3D_MODE_METALFX_TEMPORAL);
+BIND_ENUM_CONSTANT(SCALING_3D_MODE_NEAREST);
+BIND_ENUM_CONSTANT(SCALING_3D_MODE_MAX);
 
 	BIND_ENUM_CONSTANT(MSAA_DISABLED);
 	BIND_ENUM_CONSTANT(MSAA_2X);
@@ -5313,7 +5322,7 @@ Viewport::Viewport() {
 
 #ifndef _3D_DISABLED
 	set_scaling_3d_mode((Viewport::Scaling3DMode)(int)GLOBAL_GET("rendering/scaling_3d/mode"));
-	set_scaling_3d_scale(GLOBAL_GET("rendering/scaling_3d/scale"));
+set_scaling_3d_scale(GLOBAL_GET("rendering/scaling_3d/scale"));
 	set_fsr_sharpness((float)GLOBAL_GET("rendering/scaling_3d/fsr_sharpness"));
 	set_texture_mipmap_bias((float)GLOBAL_GET("rendering/textures/default_filters/texture_mipmap_bias"));
 	set_anisotropic_filtering_level((Viewport::AnisotropicFiltering)(int)GLOBAL_GET("rendering/textures/default_filters/anisotropic_filtering_level"));

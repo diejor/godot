@@ -104,8 +104,8 @@ public:
 	ToneMapper();
 	~ToneMapper();
 
-	struct TonemapSettings {
-		bool use_glow = false;
+struct TonemapSettings {
+bool use_glow = false;
 		enum GlowMode {
 			GLOW_MODE_ADD,
 			GLOW_MODE_SCREEN,
@@ -151,8 +151,9 @@ public:
 		Vector2i texture_size;
 		uint32_t view_count = 1;
 
-		bool convert_to_srgb = false;
-	};
+bool convert_to_srgb = false;
+RS::CanvasItemTextureFilter color_texture_filter = RS::CANVAS_ITEM_TEXTURE_FILTER_LINEAR;
+};
 
 	void tonemapper(RID p_source_color, RID p_dst_framebuffer, const TonemapSettings &p_settings);
 	void tonemapper(RD::DrawListID p_subpass_draw_list, RID p_source_color, RD::FramebufferFormatID p_dst_format_id, const TonemapSettings &p_settings);

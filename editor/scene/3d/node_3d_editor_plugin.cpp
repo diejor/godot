@@ -3021,8 +3021,8 @@ void Node3DEditorViewport::_project_settings_changed() {
 	const Viewport::Scaling3DMode scaling_3d_mode = Viewport::Scaling3DMode(int(GLOBAL_GET("rendering/scaling_3d/mode")));
 	viewport->set_scaling_3d_mode(scaling_3d_mode);
 
-	const float scaling_3d_scale = GLOBAL_GET("rendering/scaling_3d/scale");
-	viewport->set_scaling_3d_scale(scaling_3d_scale);
+const Vector2 scaling_3d_scale = GLOBAL_GET("rendering/scaling_3d/scale");
+viewport->set_scaling_3d_scale(scaling_3d_scale);
 
 	const float fsr_sharpness = GLOBAL_GET("rendering/scaling_3d/fsr_sharpness");
 	viewport->set_fsr_sharpness(fsr_sharpness);
