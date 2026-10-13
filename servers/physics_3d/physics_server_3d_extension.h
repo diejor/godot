@@ -339,7 +339,10 @@ public:
 	EXBIND3(body_set_state, RID, BodyState, const Variant &)
 	EXBIND2RC(Variant, body_get_state, RID, BodyState)
 
-	EXBIND1(body_flush_kinematic_transform, RID)
+	GDVIRTUAL1(_body_flush_kinematic_transform, RID)
+	virtual void body_flush_kinematic_transform(RID p_body) override {
+		GDVIRTUAL_CALL(_body_flush_kinematic_transform, p_body);
+	}
 
 	EXBIND2(body_apply_central_impulse, RID, const Vector3 &)
 	EXBIND3(body_apply_impulse, RID, const Vector3 &, const Vector3 &)

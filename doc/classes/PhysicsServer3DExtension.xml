@@ -289,7 +289,7 @@
 			<description>
 			</description>
 		</method>
-		<method name="_body_flush_kinematic_transform" qualifiers="virtual required">
+		<method name="_body_flush_kinematic_transform" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="body" type="RID" />
 			<description>
