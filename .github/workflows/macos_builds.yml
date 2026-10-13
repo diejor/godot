@@ -8,6 +8,8 @@ env:
   SCONS_FLAGS: >-
     dev_mode=yes
     module_text_server_fb_enabled=yes
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
   build-macos:
@@ -24,11 +26,25 @@ jobs:
             target: editor
             bin: ./bin/godot.macos.editor.universal
 
-          - name: Template (target=template_release)
+          - name: Editor w/ Mono (target=editor)
+            cache-name: macos-editor-mono
+            target: editor
+            scons-flags: module_mono_enabled=yes
+            suffix: .mono
+            bin: ./bin/godot.macos.editor.universal.mono
+            build-mono: true
+
+          - name: Template (target=template_release and template_debug)
             cache-name: macos-template
             target: template_release
             scons-flags: debug_symbols=no
-            bin: ./bin/godot.macos.template_release.universal
+            bundle: true
+
+          - name: Template w/ Mono (target=template_release and template_debug)
+            cache-name: macos-template-mono
+            target: template_release
+            scons-flags: debug_symbols=no module_mono_enabled=yes
+            bundle: true
 
     steps:
       - name: Checkout
@@ -44,6 +60,12 @@ jobs:
 
       - name: Setup Python and SCons
         uses: ./.github/actions/godot-deps
+
+      - name: Setup older .NET SDK as baseline
+        if: matrix.build-mono
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.100
 
       - name: Download pre-built ANGLE
         shell: sh
@@ -92,6 +114,30 @@ jobs:
           platform: macos
           target: ${{ matrix.target }}
 
+      - name: Compilation, debug (x86_64)
+        if: matrix.bundle
+        uses: ./.github/actions/godot-build
+        with:
+          scons-flags: ${{ env.SCONS_FLAGS }} ${{ matrix.scons-flags }} arch=x86_64 vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }} accesskit=${{ steps.accesskit-sdk.outputs.ACCESSKIT_ENABLED }} angle=${{ steps.angle-sdk.outputs.ANGLE_ENABLED }}
+          platform: macos
+          target: template_debug
+
+      - name: Compilation, debug (arm64)
+        if: matrix.bundle
+        uses: ./.github/actions/godot-build
+        with:
+          scons-flags: ${{ env.SCONS_FLAGS }} ${{ matrix.scons-flags }} arch=arm64 vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }} accesskit=${{ steps.accesskit-sdk.outputs.ACCESSKIT_ENABLED }} angle=${{ steps.angle-sdk.outputs.ANGLE_ENABLED }}
+          platform: macos
+          target: template_debug
+
+      - name: Bundle templates
+        if: matrix.bundle
+        uses: ./.github/actions/godot-build
+        with:
+          scons-flags: ${{ env.SCONS_FLAGS }} ${{ matrix.scons-flags }} arch=arm64 vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }} accesskit=${{ steps.accesskit-sdk.outputs.ACCESSKIT_ENABLED }} angle=${{ steps.angle-sdk.outputs.ANGLE_ENABLED }} generate_bundle=yes
+          platform: macos
+          target: template_release
+
       - name: Save Godot build cache
         uses: ./.github/actions/godot-cache-save
         with:
@@ -99,19 +145,32 @@ jobs:
         continue-on-error: true
 
       - name: Prepare artifact
+        if: "!matrix.bundle"
         run: |
-          lipo -create ./bin/godot.macos.${{ matrix.target }}.x86_64 ./bin/godot.macos.${{ matrix.target }}.arm64 -output ./bin/godot.macos.${{ matrix.target }}.universal
-          rm ./bin/godot.macos.${{ matrix.target }}.x86_64 ./bin/godot.macos.${{ matrix.target }}.arm64
+          lipo -create ./bin/godot.macos.${{ matrix.target }}.x86_64${{ matrix.suffix }} ./bin/godot.macos.${{ matrix.target }}.arm64${{ matrix.suffix }} -output ./bin/godot.macos.${{ matrix.target }}.universal${{ matrix.suffix }}
+          rm ./bin/godot.macos.${{ matrix.target }}.x86_64${{ matrix.suffix }} ./bin/godot.macos.${{ matrix.target }}.arm64${{ matrix.suffix }}
           rm -rf ./bin/build_deps
           strip bin/godot.*
           chmod +x bin/godot.*
+
+      - name: Generate C# glue
+        if: matrix.build-mono
+        run: |
+          ${{ matrix.bin }} --headless --generate-mono-glue ./modules/mono/glue
+
+      - name: Build .NET solutions
+        if: matrix.build-mono
+        run: |
+          python3 ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=macos --werror
 
       - name: Upload artifact
         uses: ./.github/actions/upload-artifact
         with:
           name: ${{ matrix.cache-name }}
+          path: ${{ matrix.bundle && 'bin/godot_macos*.zip' || 'bin/*' }}
 
       - name: Unit tests
+        if: "!matrix.bundle"
         run: |
           ${{ matrix.bin }} --version
           ${{ matrix.bin }} --help

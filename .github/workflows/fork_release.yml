@@ -60,16 +60,17 @@ jobs:
               android-editor) out="Godot_v${VERSION}_android_editor" ;;
               android-editor-horizonos) out="Godot_v${VERSION}_android_editor_horizonos" ;;
               android-editor-picoos) out="Godot_v${VERSION}_android_editor_picoos" ;;
-              android-template-arm32) out="Godot_v${VERSION}_android.arm32" ;;
-              android-template-arm64) out="Godot_v${VERSION}_android.arm64" ;;
+              android-template) out="Godot_v${VERSION}_android_templates" ;;
               linux-editor) out="Godot_v${VERSION}_linux.x86_64" ;;
               linux-editor-mono) out="Godot_v${VERSION}_mono_linux_x86_64" ;;
               linux-template-release) out="Godot_v${VERSION}.template_release.x86_64" ;;
               linux-template-debug) out="Godot_v${VERSION}.template_debug.x86_64" ;;
               linux-template-mono) out="Godot_v${VERSION}_mono.template_release.x86_64" ;;
               linux-template-mono-debug) out="Godot_v${VERSION}_mono.template_debug.x86_64" ;;
+              macos-editor-mono) out="Godot_v${VERSION}_mono_macos.universal" ;;
               macos-editor) out="Godot_v${VERSION}_macos.universal" ;;
               macos-template) out="Godot_v${VERSION}_macos.template_release.universal" ;;
+              windows-editor-mono) out="Godot_v${VERSION}_mono_win64" ;;
               windows-editor) out="Godot_v${VERSION}_win64" ;;
               windows-template) out="Godot_v${VERSION}_win64.template_release" ;;
               web-template) out="Godot_v${VERSION}_web.wasm64" ;;
@@ -92,9 +93,65 @@ jobs:
             )
           done
 
+      - name: Assemble export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION='${{ steps.meta.outputs.version }}'
+          mkdir -p release-assets
+
+          put() {
+            local src
+            src=$(find "artifacts/$1" -type f -name "$2" | head -n1)
+            [ -n "$src" ] || { echo "missing $2 in artifacts/$1"; exit 1; }
+            cp "$src" "$STAGE/templates/$3"
+          }
+
+          pack() {
+            local editor="$1" name="$2" full
+            chmod +x "$editor"
+            full=$("$editor" --version)
+            echo "$full" | awk -F. 'BEGIN{OFS="."} {NF-=2; print}' > "$STAGE/templates/version.txt"
+            (cd "$STAGE" && zip -qry "$GITHUB_WORKSPACE/release-assets/Godot_v${VERSION}_${name}export_templates.tpz" templates)
+          }
+
+          STAGE=tpz/standard
+          mkdir -p "$STAGE/templates"
+          put linux-template-debug 'godot.linuxbsd.template_debug.x86_64' linux_debug.x86_64
+          put linux-template-release 'godot.linuxbsd.template_release.x86_64' linux_release.x86_64
+          for t in debug release; do
+            put "windows-template$([ $t = debug ] && echo -debug)" "*x86_64.exe" "windows_${t}_x86_64.exe"
+            put "windows-template$([ $t = debug ] && echo -debug)" "*console.exe" "windows_${t}_x86_64_console.exe"
+          done
+          put macos-template 'godot_macos*.zip' macos.zip
+          put web-template 'godot.web.*.zip' web_release.zip
+          put web-template-debug 'godot.web.*.zip' web_debug.zip
+          put web-nothreads-template 'godot.web.*.zip' web_nothreads_release.zip
+          put web-nothreads-template-debug 'godot.web.*.zip' web_nothreads_debug.zip
+          put web-dlink-template 'godot.web.*.zip' web_dlink_release.zip
+          put web-dlink-template-debug 'godot.web.*.zip' web_dlink_debug.zip
+          put web-dlink-nothreads-template 'godot.web.*.zip' web_dlink_nothreads_release.zip
+          put web-dlink-nothreads-template-debug 'godot.web.*.zip' web_dlink_nothreads_debug.zip
+          put android-template android_debug.apk android_debug.apk
+          put android-template android_release.apk android_release.apk
+          put android-template android_source.zip android_source.zip
+          put ios-template 'godot_ios*.zip' ios.zip
+          pack artifacts/linux-editor/godot.linuxbsd.editor.x86_64 ""
+
+          STAGE=tpz/mono
+          mkdir -p "$STAGE/templates"
+          put linux-template-mono-debug 'godot.linuxbsd.template_debug.x86_64.mono' linux_debug.x86_64
+          put linux-template-mono 'godot.linuxbsd.template_release.x86_64.mono' linux_release.x86_64
+          for t in debug release; do
+            put "windows-template-mono$([ $t = debug ] && echo -debug)" "*x86_64.mono.exe" "windows_${t}_x86_64.exe"
+            put "windows-template-mono$([ $t = debug ] && echo -debug)" "*console.exe" "windows_${t}_x86_64_console.exe"
+          done
+          put macos-template-mono 'godot_macos*.zip' macos.zip
+          pack artifacts/linux-editor-mono/godot.linuxbsd.editor.x86_64.mono mono_
+
           (
             cd release-assets
-            sha256sum *.zip > SHA256SUMS.txt
+            sha256sum *.zip *.tpz > SHA256SUMS.txt
           )
 
       - name: Publish GitHub release
@@ -103,4 +160,5 @@ jobs:
           tag_name: ${{ steps.meta.outputs.tag }}
           files: |
             release-assets/*.zip
+            release-assets/*.tpz
             release-assets/SHA256SUMS.txt

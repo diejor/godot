@@ -20,16 +20,52 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Template w/ threads, 64-bit (target=template_release, threads=yes, arch=wasm64)
+          - name: Template w/ threads (target=template_release, arch=wasm32)
             cache-name: web-template
             target: template_release
-            scons-flags: threads=yes arch=wasm64
+            scons-flags: threads=yes arch=wasm32
             artifact: true
 
-          - name: Template w/o threads, 32-bit (target=template_release, threads=no, arch=wasm32)
+          - name: Template w/ threads (target=template_debug, arch=wasm32)
+            cache-name: web-template-debug
+            target: template_debug
+            scons-flags: threads=yes arch=wasm32
+            artifact: true
+
+          - name: Template w/o threads (target=template_release, arch=wasm32)
             cache-name: web-nothreads-template
             target: template_release
             scons-flags: threads=no arch=wasm32
+            artifact: true
+
+          - name: Template w/o threads (target=template_debug, arch=wasm32)
+            cache-name: web-nothreads-template-debug
+            target: template_debug
+            scons-flags: threads=no arch=wasm32
+            artifact: true
+
+          - name: Template w/ threads and extensions (target=template_release, arch=wasm32)
+            cache-name: web-dlink-template
+            target: template_release
+            scons-flags: threads=yes dlink_enabled=yes arch=wasm32
+            artifact: true
+
+          - name: Template w/ threads and extensions (target=template_debug, arch=wasm32)
+            cache-name: web-dlink-template-debug
+            target: template_debug
+            scons-flags: threads=yes dlink_enabled=yes arch=wasm32
+            artifact: true
+
+          - name: Template w/o threads, w/ extensions (target=template_release, arch=wasm32)
+            cache-name: web-dlink-nothreads-template
+            target: template_release
+            scons-flags: threads=no dlink_enabled=yes arch=wasm32
+            artifact: true
+
+          - name: Template w/o threads, w/ extensions (target=template_debug, arch=wasm32)
+            cache-name: web-dlink-nothreads-template-debug
+            target: template_debug
+            scons-flags: threads=no dlink_enabled=yes arch=wasm32
             artifact: true
 
     steps:

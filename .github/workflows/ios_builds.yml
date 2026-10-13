@@ -14,8 +14,8 @@ jobs:
   ios-template:
     # From https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job#choosing-github-hosted-runners
     runs-on: macos-26
-    name: Template (target=template_release)
-    timeout-minutes: 60
+    name: Templates (target=template_debug and template_release)
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
@@ -30,12 +30,17 @@ jobs:
       - name: Setup Python and SCons
         uses: ./.github/actions/godot-deps
 
-      - name: Compilation (arm64)
-        uses: ./.github/actions/godot-build
-        with:
-          scons-flags: ${{ env.SCONS_FLAGS }}
-          platform: ios
-          target: template_release
+      - name: Compilation
+        run: |
+          rm -rf editor
+          for target in template_debug template_release; do
+            for variant in "ios_simulator=yes arch=arm64" "ios_simulator=yes arch=x86_64"; do
+              scons platform=ios target=$target ${{ env.SCONS_FLAGS }} $variant "cache_path=${{ github.workspace }}/.scons_cache/" redirect_build_objects=no
+            done
+          done
+          scons platform=ios target=template_debug ${{ env.SCONS_FLAGS }} "cache_path=${{ github.workspace }}/.scons_cache/" redirect_build_objects=no
+          scons platform=ios target=template_release ${{ env.SCONS_FLAGS }} generate_bundle=yes "cache_path=${{ github.workspace }}/.scons_cache/" redirect_build_objects=no
+          ls -l bin/
 
       - name: Save Godot build cache
         uses: ./.github/actions/godot-cache-save
@@ -43,3 +48,5 @@ jobs:
 
       - name: Upload artifact
         uses: ./.github/actions/upload-artifact
+        with:
+          path: bin/godot_ios*.zip

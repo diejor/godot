@@ -18,7 +18,7 @@ jobs:
   build-android:
     runs-on: ubuntu-24.04
     name: ${{ matrix.name }}
-    timeout-minutes: 60
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -31,14 +31,8 @@ jobs:
               arch=arm64
               production=yes
 
-          - name: Template arm32 (target=template_debug, arch=arm32)
-            cache-name: android-template-arm32
-            target: template_debug
-            instrumented_tests: false
-            scons-flags: arch=arm32
-
-          - name: Template arm64 (target=template_debug, arch=arm64)
-            cache-name: android-template-arm64
+          - name: Templates (target=template_debug and template_release, arch=arm32 and arm64)
+            cache-name: android-template
             target: template_debug
             instrumented_tests: true
             scons-flags: arch=arm64
@@ -73,6 +67,14 @@ jobs:
           scons-flags: ${{ env.SCONS_FLAGS }} ${{ matrix.scons-flags }}
           platform: android
           target: ${{ matrix.target }}
+
+      - name: Compilation (remaining templates)
+        if: matrix.target == 'template_debug'
+        run: |
+          for variant in "template_debug arm32" "template_release arm32" "template_release arm64"; do
+            set -- $variant
+            scons platform=android target=$1 arch=$2 ${{ env.SCONS_FLAGS }} "cache_path=${{ github.workspace }}/.scons_cache/" redirect_build_objects=no
+          done
 
       - name: Save Godot build cache
         uses: ./.github/actions/godot-cache-save
